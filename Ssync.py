@@ -18,8 +18,18 @@ def sync(source, destination, dry=True):
         flags = "-puavn "
     else:
         flags = "-puav "
-    cmd = f"rsync {source} {destination} {flags}"
+    cmd = f"rsync {source} {destination} {flags}  "
     return run_cmd(cmd)
+
+
+def choose_with_fzf():
+    cmd = f'ls "{SYNC}" | fzf -m'
+    result = subprocess.getoutput(cmd)
+    # print(result)
+    if not result:
+        print("❌ No file selected.")
+        exit(1)
+    return [os.path.join(SYNC, r) for r in result.split("\n")]
 
 
 def main():
@@ -28,18 +38,27 @@ def main():
         exit(1)
 
     print("\n🔄 Dry run: Local → Remote")
-    sync(SYNC + "/", REMOTE, dry=True)
+    selected_files_local = choose_with_fzf()
+    for file in selected_files_local:
+        sync(file, REMOTE, dry=True)
     option = input("Do you want to proceed with this sync? (y/n): ").lower()
     if option == "y":
-        sync(SYNC + "/", REMOTE, dry=False)
+        for file in selected_files_local:
+            sync(file, REMOTE, dry=False)
     else:
         exit(0)
 
     print("\n🔄 Dry run: Remote → Local")
-    sync(REMOTE, SYNC + "/", dry=True)
+    option = input("Do you want to sync files from remote to local? (y/n): ").lower()
+    if option != "y":
+        exit(0)
+    selected_files_local_remote = choose_with_fzf()
+    for file in selected_files_local_remote:
+        sync(file, REMOTE, dry=True)
     option = input("Do you want to proceed with this sync? (y/n): ").lower()
     if option == "y":
-        sync(REMOTE, SYNC + "/", dry=False)
+        for file in selected_files_local_remote:
+            sync(file, REMOTE, dry=False)
     else:
         exit(0)
 
